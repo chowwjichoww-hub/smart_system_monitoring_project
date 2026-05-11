@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart System Monitoring</title>
+    <style>
+        body{
+            font-family: Arial;
+            background:#eef3ff;
+            padding:40px;
+        }
+        .card{
+            background:white;
+            padding:25px;
+            border-radius:15px;
+            max-width:700px;
+            margin:auto;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+        h1{
+            color:#003399;
+        }
+        .box{
+            margin:15px 0;
+            padding:15px;
+            background:#f5f7ff;
+            border-radius:10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Smart System Monitoring Dashboard</h1>
+
+        <div class="box">
+            <h3>CPU Usage</h3>
+            <p>{{ data.cpu }}%</p>
+        </div>
+
+        <div class="box">
+            <h3>RAM Usage</h3>
+            <p>{{ data.ram }}%</p>
+        </div>
+
+        <div class="box">
+            <h3>Disk Usage</h3>
+            <p>{{ data.disk }}%</p>
+        </div>
+
+        <div class="box">
+            <h3>Health Score</h3>
+            <p>{{ data.health_score }}</p>
+        </div>
+
+        <div class="box">
+            <h3>Prediction</h3>
+            <p>{{ data.prediction }}</p>
+        </div>
+    </div>
+</body>
+</html>
