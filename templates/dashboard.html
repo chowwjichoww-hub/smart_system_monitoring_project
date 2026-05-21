@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Smart System Monitoring{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .filter-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 1.5rem;
+        border: 2px solid #667eea;
+        background: white;
+        color: #667eea;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+
+    .filter-btn.active {
+        background: #667eea;
+        color: white;
+    }
+
+    .filter-btn:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .metric-card i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .metric-card.cpu i {
+        color: #ff6b6b;
+    }
+
+    .metric-card.ram i {
+        color: #4ecdc4;
+    }
+
+    .metric-card.disk i {
+        color: #ffd93d;
+    }
+
+    .metric-card.health i {
+        color: #95e1d3;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1a237e;
+        margin: 1rem 0;
+    }
+
+    .metric-label {
+        color: #666;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-container h3 {
+        margin-bottom: 1rem;
+        color: #1a237e;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 300px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #999;
+    }
+
+    .loading i {
+        font-size: 2rem;
+        margin-right: 1rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1><i class="fas fa-tachometer-alt"></i> System Monitoring Dashboard</h1>
+    <div class="filter-buttons">
+        <button class="filter-btn active" onclick="loadHistory('today')">Today</button>
+        <button class="filter-btn" onclick="loadHistory('weekly')">Weekly</button>
+        <button class="filter-btn" onclick="loadHistory('monthly')">Monthly</button>
+    </div>
+</div>
+
+<div class="metrics-grid" id="metricsGrid">
+    <div class="loading">
+        <i class="fas fa-spinner"></i>
+        <span>Loading system metrics...</span>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <div class="chart-container">
+        <h3><i class="fas fa-microchip" style="color: #ff6b6b;"></i> CPU Usage</h3>
+        <div class="chart-wrapper">
+            <canvas id="cpuChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-container">
+        <h3><i class="fas fa-memory" style="color: #4ecdc4;"></i> RAM Usage</h3>
+        <div class="chart-wrapper">
+            <canvas id="ramChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-container">
+        <h3><i class="fas fa-hdd" style="color: #ffd93d;"></i> Disk Usage</h3>
+        <div class="chart-wrapper">
+            <canvas id="diskChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-container">
+        <h3><i class="fas fa-heart" style="color: #95e1d3;"></i> Health Score</h3>
+        <div class="chart-wrapper">
+            <canvas id="healthChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let cpuChart, ramChart, diskChart, healthChart;
+
+    // Initialize charts
+    function initCharts(data) {
+        const ctx1 = document.getElementById('cpuChart').getContext('2d');
+        const ctx2 = document.getElementById('ramChart').getContext('2d');
+        const ctx3 = document.getElementById('diskChart').getContext('2d');
+        const ctx4 = document.getElementById('healthChart').getContext('2d');
+
+        cpuChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: data.timestamps,
+                datasets: [{
+                    label: 'CPU %',
+                    data: data.cpu,
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true } }
+            }
+        });
+
+        ramChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: data.timestamps,
+                datasets: [{
+                    label: 'RAM %',
+                    data: data.ram,
+                    borderColor: '#4ecdc4',
+                    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true } }
+            }
+        });
+
+        diskChart = new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: data.timestamps,
+                datasets: [{
+                    label: 'Disk %',
+                    data: data.disk,
+                    borderColor: '#ffd93d',
+                    backgroundColor: 'rgba(255, 217, 61, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true } }
+            }
+        });
+
+        healthChart = new Chart(ctx4, {
+            type: 'line',
+            data: {
+                labels: data.timestamps,
+                datasets: [{
+                    label: 'Health Score',
+                    data: data.health_score,
+                    borderColor: '#95e1d3',
+                    backgroundColor: 'rgba(149, 225, 211, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true } }
+            }
+        });
+    }
+
+    // Load current metrics
+    function loadMetrics() {
+        fetch('/api/system-metrics')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('metricsGrid').innerHTML = `
+                    <div class="metric-card cpu">
+                        <i class="fas fa-microchip"></i>
+                        <div class="metric-label">CPU Usage</div>
+                        <div class="metric-value">${data.cpu}%</div>
+                    </div>
+                    <div class="metric-card ram">
+                        <i class="fas fa-memory"></i>
+                        <div class="metric-label">RAM Usage</div>
+                        <div class="metric-value">${data.ram}%</div>
+                    </div>
+                    <div class="metric-card disk">
+                        <i class="fas fa-hdd"></i>
+                        <div class="metric-label">Disk Usage</div>
+                        <div class="metric-value">${data.disk}%</div>
+                    </div>
+                    <div class="metric-card health">
+                        <i class="fas fa-heart"></i>
+                        <div class="metric-label">Health Score</div>
+                        <div class="metric-value">${data.health_score}</div>
+                    </div>
+                `;
+            });
+    }
+
+    // Load historical data
+    function loadHistory(period) {
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        fetch(`/api/history?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                if (cpuChart) {
+                    cpuChart.destroy();
+                    ramChart.destroy();
+                    diskChart.destroy();
+                    healthChart.destroy();
+                }
+                initCharts(data);
+            });
+    }
+
+    // Initial load
+    loadMetrics();
+    loadHistory('today');
+
+    // Refresh metrics every 30 seconds
+    setInterval(loadMetrics, 30000);
+</script>
+{% endblock %}

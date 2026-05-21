@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Smart System Monitoring{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card .number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 1rem 0;
+    }
+
+    .stat-card .label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .users-section, .logins-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        color: #1a237e;
+        margin-bottom: 1.5rem;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 1rem;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .users-table th {
+        background-color: #f5f7ff;
+        color: #1a237e;
+        padding: 1rem;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .users-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .users-table tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    .user-row {
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+
+    .badge-admin {
+        background-color: #ffd93d;
+        color: #333;
+    }
+
+    .badge-user {
+        background-color: #e0e0e0;
+        color: #333;
+    }
+
+    .btn-small {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.85rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-make-admin {
+        background-color: #667eea;
+        color: white;
+    }
+
+    .btn-make-admin:hover {
+        background-color: #5568d3;
+    }
+
+    .btn-remove-admin {
+        background-color: #ff6b6b;
+        color: white;
+    }
+
+    .btn-remove-admin:hover {
+        background-color: #ff5252;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 2rem;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-close {
+        color: #aaa;
+        float: right;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .modal-close:hover {
+        color: #000;
+    }
+
+    .login-item {
+        padding: 1rem;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #667eea;
+    }
+
+    .login-item .time {
+        font-weight: bold;
+        color: #1a237e;
+    }
+
+    .login-item .ip {
+        color: #666;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .login-item .browser {
+        color: #999;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1><i class="fas fa-shield-alt"></i> Admin Control Panel</h1>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <i class="fas fa-users"></i>
+        <div class="label">Total Users</div>
+        <div class="number">{{ total_users }}</div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-sign-in-alt"></i>
+        <div class="label">Total Logins</div>
+        <div class="number">{{ total_logins }}</div>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-crown"></i>
+        <div class="label">Admin Users</div>
+        <div class="number">{{ total_admins }}</div>
+    </div>
+</div>
+
+<div class="users-section">
+    <h2 class="section-title"><i class="fas fa-list"></i> Registered Users</h2>
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Registered</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr class="user-row" onclick="showUserDetails({{ user.id }}, '{{ user.username }}')">
+                <td><strong>{{ user.username }}</strong></td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if user.is_admin %}
+                        <span class="badge badge-admin"><i class="fas fa-crown"></i> Admin</span>
+                    {% else %}
+                        <span class="badge badge-user"><i class="fas fa-user"></i> User</span>
+                    {% endif %}
+                </td>
+                <td onclick="event.stopPropagation()">
+                    {% if user.is_admin %}
+                        <button class="btn-small btn-remove-admin" onclick="removeAdmin({{ user.id }}, '{{ user.username }}')">
+                            <i class="fas fa-times"></i> Remove Admin
+                        </button>
+                    {% else %}
+                        <button class="btn-small btn-make-admin" onclick="makeAdmin({{ user.id }}, '{{ user.username }}')">
+                            <i class="fas fa-plus"></i> Make Admin
+                        </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="logins-section">
+    <h2 class="section-title"><i class="fas fa-history"></i> Recent Logins</h2>
+    {% for login in recent_logins %}
+    <div class="login-item">
+        <div class="time">
+            <i class="fas fa-user-circle"></i> {{ login.user.username }}
+            <span style="float: right; color: #999;">{{ login.login_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+        </div>
+        <div class="ip"><i class="fas fa-network-wired"></i> IP: {{ login.ip_address }}</div>
+        <div class="browser"><i class="fas fa-globe"></i> {{ login.browser }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal for user details -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeUserModal()">&times;</span>
+        <h2 id="modalTitle"></h2>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showUserDetails(userId, username) {
+        fetch(`/api/admin/user-details/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                let html = `
+                    <div style="margin-bottom: 1.5rem;">
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <p><strong>Joined:</strong> ${data.created_at}</p>
+                        <p><strong>Total Logins:</strong> ${data.total_logins}</p>
+                    </div>
+                    <h3>Login History</h3>
+                `;
+                
+                data.logins.forEach(login => {
+                    html += `
+                        <div class="login-item">
+                            <div class="time">${login.time}</div>
+                            <div class="ip"><i class="fas fa-network-wired"></i> IP: ${login.ip}</div>
+                            <div class="browser"><i class="fas fa-globe"></i> ${login.browser}</div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('modalTitle').textContent = `User Details: ${username}`;
+                document.getElementById('modalBody').innerHTML = html;
+                document.getElementById('userModal').style.display = 'block';
+            });
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').style.display = 'none';
+    }
+
+    function makeAdmin(userId, username) {
+        if (confirm(`Make ${username} an admin?`)) {
+            fetch(`/api/admin/make-admin/${userId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                });
+        }
+    }
+
+    function removeAdmin(userId, username) {
+        if (confirm(`Remove admin privileges from ${username}?`)) {
+            fetch(`/api/admin/remove-admin/${userId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                });
+        }
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('userModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
